@@ -1,11 +1,11 @@
 {
-  "name": "pinia-for-react",
-  "version": "0.0.19",
+  "name": "axios-ultra",
+  "version": "0.0.0",
   "author": "by zhizhuo <1543057945@qq.com> (https://github.com/154305)",
-  "description": "react-pinia-store一个跟vue pinia类似的react状态管理",
-  "keywords": "pinia,store,react,pinia-for-react",
-  "homepage": "https://github.com/154305/pinia-for-react",
-  "repository": "154305/pinia-for-react",
+  "description": "一个全平台请求库 支持web、taro、uniapp、小程序,并且支持通用业务拦截器",
+  "keywords": "axios,uniapp,taro,request,xhr,web",
+  "homepage": "https://github.com/154305/axios-ultra",
+  "repository": "154305/axios-ultra",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -20,18 +20,14 @@
     "start:taro": "cd examples/taro & npm run dev:weapp"
   },
   "dependencies": {
-    "lodash-es": "^4.17.21",
-    "react": "^17.0.0",
-    "uuid": "^8.3.2"
+    "lodash-es": "^4.17.6",
+    "axios": "^0.27.2"
   },
   "devDependencies": {
-    "@types/react": "^17.0.0",
-    "@types/uuid": "^8.3.4",
     "@types/lodash-es": "^4.17.6",
+    "@tarojs/taro": "^3.4.1",
+    "@dcloudio/types": "^2.6.4",
     "tsup": "^6.2.1",
     "unbuild": "^0.7.6"
-  },
-  "peerDependencies": {
-    "react": "^17.0.0"
   }
 }
