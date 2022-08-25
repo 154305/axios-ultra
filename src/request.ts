@@ -1,6 +1,6 @@
 import axios, {AxiosInstance, AxiosRequestConfig} from "axios";
-
-
+import adapter from './adapter';
+import createTokenInterceptor, {TokenInterceptorOption} from "./interceptors/TokenInterceptor";
 
 /**
  * by zlm(执着)
@@ -13,7 +13,7 @@ export type Message =
     success?: boolean | string;
 };
 // loading
-export type Loading = LoadingInstance | string | boolean;
+export type Loading = any | string | boolean;
 
 export interface RequestInterceptor {
     // 请求拦截
@@ -84,71 +84,40 @@ class HttpRequest<R> {
     //全局配置项
     private readonly options: RequestConfigOption;
 
-    constructor(configOption: RequestConfigOption = {}) {
+    constructor(configOption: RequestConfigOption & TokenInterceptorOption = {}) {
         const options = Object.assign({}, defaultOptions, configOption);
         //实例化axios实例
         this.axiosInstance = axios.create(options);
+        //不是普通web项目才添加adapter
+        if (!(window && window.document)) {
+            axios.defaults.adapter = adapter
+        }
         //全局option
         this.options = options;
+
+        //添加token刷新 拦截器
+        this.addInterceptor(createTokenInterceptor(this.axiosInstance));
+
         //添加配置拦截器
         this.addInterceptor(options.interceptor || {});
+
     }
 
     //配置拦截器
     addInterceptor(interceptor: RequestInterceptor) {
+        const noop = async (data) => {
+            console.log(data)
+            return data
+        }
         // 使用实例拦截器
-        this.axiosInstance.interceptors.request.use(interceptor.requestInterceptor, interceptor.requestInterceptorCatch);
-        this.axiosInstance.interceptors.response.use(interceptor.responseInterceptor, interceptor.responseInterceptorCatch);
+        this.axiosInstance.interceptors.request.use(interceptor.requestInterceptor , interceptor.requestInterceptorCatch );
+        this.axiosInstance.interceptors.response.use(interceptor.responseInterceptor , interceptor.responseInterceptorCatch);
     }
 
     //基础请求
     request = async <A>(options?: RequestConfigOption): Promise<A> => {
-        options = {...defaultOptions, ...this.options, ...(options || {})};
-        //解析loading参数
-        const loadingOptions = processLoadingOptions(options.loading as Loading);
-        loadingOptions && (options.$loading = ElLoading.service(loadingOptions as any));
-        //解析message参数
-        const messageOptions = processMessageOptions(options.message as Message);
-
-        //获取提示消息
-        const getMessageStr = (value, defaultStr) => (typeof value == "boolean" ? defaultStr : value);
-
-        return this.axiosInstance
-            .request(options)
-            .then((response: any = {}) => {
-                if (response instanceof Error) throw response;
-                //获取全部响应
-                if (options?.getResponse) {
-                    return Promise.resolve(response);
-                }
-                const res = response.data;
-                const {message} = res || {};
-                //判断响应类型，响应类型是json才处理
-                if ((options?.responseType || "json").toLocaleLowerCase() === "json") {
-                    //在默认不直接获取data的情况下，会直接成功
-                    if (options?.getApiResponse) {
-                        messageOptions.success && ElMessage.success(getMessageStr(messageOptions.success, message || "操作成功"));
-                        return Promise.resolve(res);
-                    } else if (options?.getSuccessData && options?.isSuccess) {
-                        if (options?.isSuccess(res)) {
-                            messageOptions.success && ElMessage.success(getMessageStr(messageOptions.success, message || "操作成功"));
-                            return Promise.resolve(options?.getSuccessData(res));
-                        } else {
-                            return Promise.reject(res);
-                        }
-                    }
-                }
-                return Promise.resolve(res);
-            })
-            .catch((response) => {
-                const {message, msg, error_description} = response?.response?.data || response?.data || response || {};
-                messageOptions.error &&
-                ElMessage.error(getMessageStr(messageOptions.error, msg || error_description || message || "操作失败"));
-                return Promise.reject(response);
-            })
-            .finally(() => {
-                options?.$loading?.close();
-            });
+        // @ts-ignore
+        return this.axiosInstance.request(options)
     };
 
     get<Data = R>(url: string, params?: any, options?: RequestConfigOption) {
