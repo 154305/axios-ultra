@@ -9,12 +9,18 @@ export default () => {
     }, [])
 
     const run = async () => {
+        const data = await httpRequest.get<{username:string}>('/api3',{},{
+            loading:true,
+            message:true,
+        });
+
         console.log(
-            httpRequest.get('/api1', {}, {needHeaderToken: false, message: true, loading: true}),
+            httpRequest.get<{username:string}>('/api1', {}, {needHeaderToken: false, message: true, loading: true}),
             // httpRequest.get('/api3'),
             // await httpRequest.get('/api1'),
             // await httpRequest.get('/api2'),
-            await httpRequest.get('/api3'),
+
+
         )
     }
 

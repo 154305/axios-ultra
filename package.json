@@ -1,6 +1,6 @@
 {
   "name": "axios-ultra",
-  "version": "0.0.0",
+  "version": "0.0.2",
   "author": "by zhizhuo <1543057945@qq.com> (https://github.com/154305)",
   "description": "一个全平台请求库 支持web、taro、uniapp、小程序,并且支持通用业务拦截器",
   "keywords": "axios,uniapp,taro,request,xhr,web",

@@ -9,8 +9,8 @@ import {isGeneralWeb} from "./util";
 const defaultOptions = {
     //接口回调是否成功
     isSuccess(resp: AxiosResponse) {
-        const data = resp.data;
-        return data.code == 200 || data.success;
+        const data = resp.data || {};
+        return data.code == 200 || data.code == 0 || data.success;
     },
     //获取成功情况下的data
     getSuccessData(resp: AxiosResponse) {
@@ -49,7 +49,7 @@ export class HttpRequest<R = AxiosUltraAPIResponse> {
         //实例化axios实例
         this.axiosInstance = axios.create(options);
         //不是普通web项目才添加adapter
-        if (isGeneralWeb()) {
+        if (!isGeneralWeb()) {
             axios.defaults.adapter = adapter
         }
         //全局option
