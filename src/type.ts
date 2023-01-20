@@ -6,21 +6,21 @@ import {AxiosRequestConfig} from "axios";
 /**
  * 接口响应
  */
-export interface AxiosUltraAPIResponse {
+export declare interface AxiosUltraAPIResponse<T = any> {
 
 }
 
 /**
  * 失败消息提示
  */
-export interface AxiosUltraErrorMessageOption {
+export declare interface AxiosUltraErrorMessageOption {
     title: string
 }
 
 /**
  * 成功消息提示
  */
-export interface AxiosUltraSuccessMessageOption {
+export declare interface AxiosUltraSuccessMessageOption {
     title: string
 }
 
@@ -36,14 +36,14 @@ export type AxiosUltraMessageOption = {
 /**
  * loading
  */
-export interface AxiosUltraLoadingOption {
+export declare interface AxiosUltraLoadingOption {
     title: string
 }
 
 /**
  * 消息提示 接口
  */
-export type AxiosUltraToast = {
+export declare type AxiosUltraToast = {
     /**
      * 成功提示
      * @param option
@@ -61,7 +61,7 @@ export type AxiosUltraToast = {
     loading(option: AxiosUltraLoadingOption): () => void;
 }
 
-export interface AxiosInterceptorObject {
+export declare interface AxiosInterceptorObject {
     /**
      * 请求拦截
      * @param config
@@ -77,7 +77,7 @@ export interface AxiosInterceptorObject {
 }
 
 //请求参数
-export interface AxiosUltraRequestConfigOption extends AxiosRequestConfig, Record<string, any> {
+export declare interface AxiosUltraRequestConfigOption extends AxiosRequestConfig, Record<string, any> {
     /**
      * 是否loading
      */

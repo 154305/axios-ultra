@@ -1,8 +1,7 @@
-import HttpRequest from "../../../../src/request";
-import {AxiosUltraErrorMessageOption, AxiosUltraLoadingOption, AxiosUltraSuccessMessageOption, AxiosUltraToast} from "../../../../src/type";
 import {message} from 'antd'
+import HttpRequest, {AxiosUltraErrorMessageOption, AxiosUltraLoadingOption, AxiosUltraSuccessMessageOption} from "axios-ultra";
 
-let httpRequest = new HttpRequest({
+const httpRequest = new HttpRequest({
     baseURL: '/api',
     needHeaderToken: true,
     enableRefreshToken: true,

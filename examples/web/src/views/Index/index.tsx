@@ -13,6 +13,12 @@ export default () => {
             loading:true,
             message:true,
         });
+        const data1 = await httpRequest.get('/api3',{},{
+            loading:true,
+            message:true,
+        });
+
+        data1.
 
         console.log(
             httpRequest.get<{username:string}>('/api1', {}, {needHeaderToken: false, message: true, loading: true}),

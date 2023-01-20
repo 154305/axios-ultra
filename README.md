@@ -11,6 +11,12 @@
 
 ## Useage
 
+```bash
+npm i axios-ultra
+or
+yarn add axios-ultra
+```
+
 ```ts
 import HttpRequest from "axios-ultra";
 import type {AxiosUltraErrorMessageOption, AxiosUltraLoadingOption, AxiosUltraSuccessMessageOption, AxiosUltraToast} from "axios-ultra";
@@ -48,11 +54,12 @@ const httpRequest = new HttpRequest({
         },
     }
 });
-httpRequest.get('/api1', {}, {message: true, loading: true});
-httpRequest.get('/api1', {}, {message: {error: false, message: '操作成功'}, loading: '加载中...'});
+//data 直接是接口响应的data 内置默认取接口最后的数据
+const data = httpRequest.get('/api1', {}, {message: true, loading: true});
+const data1 = httpRequest.get('/api1', {}, {message: {error: false, message: '操作成功'}, loading: '加载中...'});
 ```
 
-## TYPES
+## Type Description
 
 ```ts
 /**
@@ -201,3 +208,34 @@ export interface AxiosUltraRequestConfigOption extends AxiosRequestConfig, Recor
 }
 ```
 
+## Extend Type
+
+```ts
+//一定要加，不然不知道扩展哪个库
+import AxiosUltra from 'axios-ultra'
+
+declare module 'axios-ultra' {
+    /**
+     * 扩展接口响应参数
+     */
+    export interface AxiosUltraAPIResponse {
+        code: number;
+        data: any;
+        message: string
+    }
+
+    /**
+     * 扩展错误消息提示传参
+     */
+    export interface AxiosUltraErrorMessageOption {
+
+    }
+
+    /**
+     * 扩展成功消息提示传参
+     */
+    export interface AxiosUltraSuccessMessageOption {
+
+    }
+}
+```

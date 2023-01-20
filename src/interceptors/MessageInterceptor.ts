@@ -88,6 +88,12 @@ const createMessageInterceptor = function (httpRequest: HttpRequest) {
             if (config.__IS_REFRESH_TOKEN_CALLBACK_REQUEST__) {
                 throw error
             }
+            if (config.getResponse) {
+                throw error.response;
+            }
+            if (config.getApiResponse) {
+                throw error.response?.data;
+            }
             const message = config.getApiMessage?.(error.response);
             //解析message参数
             const messageOptions = processMessageOptions(config.message as AxiosUltraMessageOption, message);
