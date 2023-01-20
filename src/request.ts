@@ -1,126 +1,99 @@
-import axios, {AxiosInstance, AxiosRequestConfig} from "axios";
+import axios, {AxiosResponse, AxiosInstance} from "axios";
 import adapter from './adapter';
-import createTokenInterceptor, {TokenInterceptorOption} from "./interceptors/TokenInterceptor";
-
-/**
- * by zlm(执着)
- */
-//消息提示
-export type Message =
-    | boolean
-    | {
-    error?: boolean | string;
-    success?: boolean | string;
-};
-// loading
-export type Loading = any | string | boolean;
-
-export interface RequestInterceptor {
-    // 请求拦截
-    requestInterceptor?: (config: RequestConfigOption) => RequestConfigOption;
-    requestInterceptorCatch?: (err: any) => any;
-    // 响应拦截
-    responseInterceptor?: (response: any) => any;
-    responseInterceptorCatch?: (err: any) => any;
-}
-
-//请求参数
-export interface RequestConfigOption extends AxiosRequestConfig, Record<string, any> {
-    //是否loading
-    loading?: Loading;
-    //是否消息提示
-    message?: Message;
-    //外部传入是否请求成功
-    isSuccess?: (resp: any) => Boolean;
-    //是否获取api响应的数据
-    getApiResponse?: boolean;
-    //是否含有完整的http响应（一般用于获取头部信息的请求）
-    getResponse?: boolean;
-    //成功情况下获取data
-    getSuccessData?: (resp: any) => any;
-    //拦截器
-    interceptor?: RequestInterceptor;
-}
-
-// //处理提示参数
-const processMessageOptions = (message: Message) => {
-    if (typeof message == "boolean") {
-        return {error: message, success: message};
-    } else if (typeof message == "object") {
-        return message;
-    }
-    return {error: false, success: false};
-};
-
-// //处理loading参数
-const processLoadingOptions = (loading: Loading) => {
-    if (typeof loading == "boolean" && loading) {
-        return {lock: true, text: "加载中"};
-    } else if (typeof loading == "string") {
-        return {lock: true, text: loading};
-    } else if (typeof loading == "object") {
-        return loading;
-    }
-    return false;
-};
+import createTokenInterceptor from "./interceptors/TokenInterceptor";
+import {AxiosInterceptorObject, AxiosUltraAPIResponse, AxiosUltraRequestConfigOption} from "./type";
+import createMessageInterceptor from "./interceptors/MessageInterceptor";
+import {isGeneralWeb} from "./util";
 
 //默认options
 const defaultOptions = {
     //接口回调是否成功
-    isSuccess(resp) {
-        return resp.code == 200 || resp.success;
+    isSuccess(resp: AxiosResponse) {
+        const data = resp.data;
+        return data.code == 200 || data.success;
     },
     //获取成功情况下的data
-    getSuccessData(resp) {
-        return resp.data;
+    getSuccessData(resp: AxiosResponse) {
+        return resp.data?.data;
+    },
+    //获取接口消息提示字符串
+    getApiMessage(response) {
+        const messageKeys = ['error_description', 'msg', 'message',];
+        const messageDataArr = [response?.response?.data, response?.data, response]
+        for (let i = 0; i < messageDataArr.length; i++) {
+            for (let j = 0; j < messageKeys.length; j++) {
+                let errorMessage;
+                if (errorMessage = messageDataArr[i]?.[messageKeys[j]]) {
+                    return errorMessage
+                }
+            }
+        }
     },
     //不直接获取api响应的数据，而是获取成功后里面的data
     getApiResponse: true,
-};
+} as AxiosUltraRequestConfigOption;
 
-class HttpRequest<R> {
-    //axios实例
+export class HttpRequest<R = AxiosUltraAPIResponse> {
+    /**
+     * axios实例
+     */
     axiosInstance: AxiosInstance;
-    //全局配置项
-    private readonly options: RequestConfigOption;
 
-    constructor(configOption: RequestConfigOption & TokenInterceptorOption = {}) {
+    /**
+     * 全局配置项
+     */
+    readonly options: AxiosUltraRequestConfigOption;
+
+    constructor(configOption: AxiosUltraRequestConfigOption) {
         const options = Object.assign({}, defaultOptions, configOption);
         //实例化axios实例
         this.axiosInstance = axios.create(options);
         //不是普通web项目才添加adapter
-        if (!(window && window.document)) {
+        if (isGeneralWeb()) {
             axios.defaults.adapter = adapter
         }
         //全局option
         this.options = options;
 
+        //添加消息提示
+        this.addInterceptor(createMessageInterceptor(this));
+
         //添加token刷新 拦截器
-        this.addInterceptor(createTokenInterceptor(this.axiosInstance));
+        this.addInterceptor(createTokenInterceptor(this));
 
         //添加配置拦截器
         this.addInterceptor(options.interceptor || {});
 
+
     }
 
-    //配置拦截器
-    addInterceptor(interceptor: RequestInterceptor) {
-        const noop = async (data) => {
-            console.log(data)
-            return data
-        }
+    /**
+     * 配置拦截器
+     * @param interceptor
+     */
+    addInterceptor(interceptor: AxiosInterceptorObject) {
         // 使用实例拦截器
-        this.axiosInstance.interceptors.request.use(interceptor.requestInterceptor , interceptor.requestInterceptorCatch );
-        this.axiosInstance.interceptors.response.use(interceptor.responseInterceptor , interceptor.responseInterceptorCatch);
+        this.axiosInstance.interceptors.request.use(interceptor.requestInterceptor, interceptor.requestInterceptorCatch);
+        this.axiosInstance.interceptors.response.use(interceptor.responseInterceptor, interceptor.responseInterceptorCatch);
     }
 
-    //基础请求
-    request = async <A>(options?: RequestConfigOption): Promise<A> => {
+    /**
+     * 基础请求
+     * @param options
+     */
+    request = async <A>(options?: AxiosUltraRequestConfigOption): Promise<A> => {
         // @ts-ignore
         return this.axiosInstance.request(options)
     };
 
-    get<Data = R>(url: string, params?: any, options?: RequestConfigOption) {
+
+    /**
+     * 获取
+     * @param url
+     * @param params
+     * @param options
+     */
+    get<Data = R>(url: string, params?: any, options?: AxiosUltraRequestConfigOption) {
         return this.request<Data>({
             method: "get",
             url,
@@ -129,7 +102,15 @@ class HttpRequest<R> {
         });
     }
 
-    post<Data = R>(url: string, params?: any, data?: any, options?: RequestConfigOption) {
+
+    /**
+     * 提交
+     * @param url
+     * @param params
+     * @param data
+     * @param options
+     */
+    post<Data = R>(url: string, params?: any, data?: any, options?: AxiosUltraRequestConfigOption) {
         return this.request<Data>({
             method: "post",
             url,
@@ -139,7 +120,14 @@ class HttpRequest<R> {
         });
     }
 
-    put<Data = R>(url: string, params?: any, data?: any, options?: RequestConfigOption) {
+    /**
+     * 修改
+     * @param url
+     * @param params
+     * @param data
+     * @param options
+     */
+    put<Data = R>(url: string, params?: any, data?: any, options?: AxiosUltraRequestConfigOption) {
         return this.request<Data>({
             method: "put",
             url,
@@ -149,11 +137,30 @@ class HttpRequest<R> {
         });
     }
 
-    delete<Data = R>(url: string, params?: any, options?: RequestConfigOption) {
+    /**
+     * 删除
+     * @param url
+     * @param params
+     * @param options
+     */
+    delete<Data = R>(url: string, params?: any, options?: AxiosUltraRequestConfigOption) {
         return this.request<Data>({
             method: "delete",
             url,
             params,
+            ...options,
+        });
+    }
+
+    /**
+     * 为了兼适配小程序上传
+     * @param url 上传url
+     * @param options 上传选项
+     */
+    upload<Data = R>(url: string, options?: AxiosUltraRequestConfigOption & UniApp.UploadFileOption) {
+        return this.request<Data>({
+            method: "upload",
+            url,
             ...options,
         });
     }

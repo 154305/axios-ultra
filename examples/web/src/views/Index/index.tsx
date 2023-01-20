@@ -5,15 +5,15 @@ import httpRequest from "/@/utils/request";
 export default () => {
     useEffect(() => {
         run();
-        window.onunload = () => localStorage.clear()
+        // window.onunload = () => localStorage.clear()
     }, [])
 
     const run = async () => {
         console.log(
-            httpRequest.get('/api1'),
-            httpRequest.get('/api3'),
-            await httpRequest.get('/api1'),
-            await httpRequest.get('/api2'),
+            httpRequest.get('/api1', {}, {needHeaderToken: false, message: true, loading: true}),
+            // httpRequest.get('/api3'),
+            // await httpRequest.get('/api1'),
+            // await httpRequest.get('/api2'),
             await httpRequest.get('/api3'),
         )
     }

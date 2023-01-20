@@ -4,7 +4,7 @@ import settle from 'axios/lib/core/settle'
 import buildURL from 'axios/lib/helpers/buildURL'
 import buildFullPath from 'axios/lib/core/buildFullPath'
 import encode from './encoder'
-import {getRequest, transformError, transformResponse, transformConfig} from './platform'
+import {getRequest, transformError, transformResponse, transformConfig, getUploadFile} from './platform'
 
 const isJSONStr = str => {
     try {
@@ -15,14 +15,15 @@ const isJSONStr = str => {
 }
 export default function adapter(config: AxiosRequestConfig): AxiosPromise {
     const request = getRequest();
+    const uploadFile = getUploadFile();
     return new Promise((resolve, reject) => {
-        let requestTask: UniApp.RequestTask | undefined
+        let requestTask: any
         let requestData = config.data
         let requestHeaders = config.headers || {}
         // baidu miniprogram only support upperCase
         let requestMethod = (config.method && config.method.toUpperCase()) || 'GET'
         // miniprogram network request config
-        const mpRequestOption: UniApp.RequestOptions = {
+        const mpRequestOption: any = {
             method: requestMethod as | 'OPTIONS'
                 | 'GET'
                 | 'HEAD'
@@ -30,7 +31,8 @@ export default function adapter(config: AxiosRequestConfig): AxiosPromise {
                 | 'PUT'
                 | 'DELETE'
                 | 'TRACE'
-                | 'CONNECT',
+                | 'CONNECT'
+                | 'UPLOAD',
             url: buildURL(buildFullPath(config.baseURL, config.url), config.params, config.paramsSerializer),
             timeout: config.timeout,
             // Listen for success
@@ -88,7 +90,11 @@ export default function adapter(config: AxiosRequestConfig): AxiosPromise {
         if (requestData !== undefined) {
             mpRequestOption.data = requestData
         }
-
-        requestTask = request(transformConfig(mpRequestOption))
+        //兼容上传
+        if (mpRequestOption.method == 'UPLOAD') {
+            requestTask = uploadFile(transformConfig(mpRequestOption),)
+        } else {
+            requestTask = request(transformConfig(mpRequestOption))
+        }
     })
 }

@@ -53,6 +53,40 @@ export function getRequest() {
 }
 
 /**
+ * 获取各个平台的上传文件函数
+ */
+export function getUploadFile() {
+    switch (true) {
+        case typeof wx === 'object':
+            platFormName = EnumPlatForm.wx
+            return wx.uploadFile.bind(wx)
+        case typeof swan === 'object':
+            platFormName = EnumPlatForm.alipay
+            return swan.uploadFile.bind(swan)
+        case typeof swan === 'object':
+            platFormName = EnumPlatForm.alipay
+            return swan.uploadFile.bind(swan)
+        case typeof dd === 'object':
+            platFormName = EnumPlatForm.dd
+            // https://open.dingtalk.com/document/orgapp-client/send-network-requests
+            return dd.uploadFile.bind(my)
+        case typeof my === 'object':
+            /**
+             * remark:
+             * 支付宝客户端已不再维护 my.httpRequest，建议使用 my.request。另外，dd客户端尚不支持 my.request。若在dd客户端开发小程序，则需要使用 my.httpRequest。
+             * my.httpRequest的请求头默认值为{'content-type': 'application/x-www-form-urlencoded'}。
+             * my.request的请求头默认值为{'content-type': 'application/json'}。
+             * 还有个 dd.httpRequest
+             */
+            platFormName = EnumPlatForm.alipay
+            return my.uploadFile.bind(my)
+        case typeof uni === 'object':
+            platFormName = EnumPlatForm.uni
+            return uni.uploadFile.bind(uni)
+    }
+}
+
+/**
  * 处理各平台返回的响应数据，抹平差异
  * @param mpResponse
  * @param config axios处理过的请求配置对象

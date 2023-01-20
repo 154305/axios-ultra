@@ -1,25 +1,17 @@
-import {AxiosInterceptorObject} from "../type";
-import {AxiosError, AxiosInstance, AxiosRequestConfig} from "axios";
+import {AxiosInterceptorObject, AxiosUltraRequestConfigOption} from "../type";
+import {AxiosError} from "axios";
+import HttpRequest from "../request";
 
-//token拦截option
-export interface TokenInterceptorOption {
-    //是否需要token
-    needHeaderToken?: boolean,
-    //处理
-    processHeaderToken?: (config: TokenInterceptorOption & AxiosRequestConfig) => void;
-    //token刷新重试
-    refreshTokenRetryCount?: number;
-    //开启刷新token
-    enableRefreshToken?: boolean;
-    //处理刷新token逻辑
-    processRefreshTokenLogic?: () => void | Promise<void>;
-}
+const createTokenInterceptor = function (httpRequest: HttpRequest) {
 
-const createTokenInterceptor = function (axiosInstance: AxiosInstance) {
-
+    //token是否刷新成功
     let refreshSuccess = false;
+    //刷新中状态
     let refreshing = false;
 
+    const axiosInstance = httpRequest.axiosInstance;
+
+    //暂存回调队列
     const callbacks = [] as Function[];
 
     const addCallback = (cb) => {
@@ -36,7 +28,7 @@ const createTokenInterceptor = function (axiosInstance: AxiosInstance) {
 
     return {
         //配置请求拦截
-        async requestInterceptor(config: TokenInterceptorOption & AxiosRequestConfig) {
+        async requestInterceptor(config: AxiosUltraRequestConfigOption) {
             //处理token
             const processToken = async (config) => {
                 if (!config.needHeaderToken) {
@@ -60,44 +52,45 @@ const createTokenInterceptor = function (axiosInstance: AxiosInstance) {
             const finalConfig = error.config;
             // console.log(error)
             const response = error?.response;
-            if (!response || !finalConfig.enableRefreshToken || typeof finalConfig.processRefreshTokenLogic != 'function') {
-                return Promise.reject(error);
+            if (!response
+                || !finalConfig.enableRefreshToken
+                || typeof finalConfig.processRefreshTokenLogic != 'function'
+                || response.status !== 401
+            ) {
+                throw error;
             }
-            //401状态
-            if (response.status === 401) {
-                //正在刷新中 添加到返回新的promise 并等待刷新完成，重新请求
-                if (refreshing) {
-                    console.log('401 response ' + finalConfig.url);
-                    console.log('token刷新中，存入回调队列 ' + finalConfig.url)
-                    return addCallback(async () => await axiosInstance?.request({...finalConfig}))
-                }
-                if (refreshSuccess) {
-                    console.log('被拦截后发现token以刷新 直接请求' + finalConfig.url)
-                    return axiosInstance.request({...finalConfig})
-                }
-                refreshSuccess = false;
-                console.log('遇到第一个401请求 ' + finalConfig.url)
-                //设置刷新中标记
-                refreshing = true;
-                //执行刷新token请求 执行重试策略
-                for (let i = 0; i < (finalConfig.refreshTokenRetryCount || 0) + 1; i++) {
-                    try {
-                        await finalConfig.processRefreshTokenLogic();
-                        refreshSuccess = true;
-                        console.log('token刷新完毕')
-                        break;
-                    } catch (e) {
-                        refreshSuccess = false;
-                    }
-                }
-                refreshing = false;
-                console.log('唤醒所有被401拦截的请求')
-                callbacks.forEach(cb => cb());
-                //清除callbacks
-                callbacks.length = 0;
-                return axiosInstance.request({...finalConfig})
+            //正在刷新中 添加到返回新的promise 并等待刷新完成，重新请求
+            if (refreshing) {
+                console.log('401 response ' + finalConfig.url);
+                console.log('token刷新中，存入回调队列 ' + finalConfig.url)
+                return await addCallback(async () => await axiosInstance.request({...finalConfig, __IS_REFRESH_CALLBACK_REQUEST__: true}))
             }
-            return Promise.reject(error)
+            //刷新成功
+            if (refreshSuccess) {
+                console.log('被拦截后发现token已刷新 直接请求' + finalConfig.url)
+                return await axiosInstance.request({...finalConfig, __IS_REFRESH_CALLBACK_REQUEST__: true})
+            }
+            refreshSuccess = false;
+            console.log('遇到第一个401请求 ' + finalConfig.url)
+            //设置刷新中标记
+            refreshing = true;
+            //执行刷新token请求 执行重试策略
+            for (let i = 0; i < (finalConfig.refreshTokenRetryCount || 0) + 1; i++) {
+                try {
+                    await finalConfig.processRefreshTokenLogic({enableRefreshToken: false});
+                    refreshSuccess = true;
+                    console.log('token刷新完毕')
+                    break;
+                } catch (e) {
+                    refreshSuccess = false;
+                }
+            }
+            refreshing = false;
+            console.log('唤醒所有被401拦截的请求', callbacks)
+            callbacks.forEach(cb => cb());
+            //清空回调队列
+            callbacks.length = 0;
+            return await axiosInstance.request({...finalConfig, __IS_REFRESH_CALLBACK_REQUEST__: true})
         }
     } as AxiosInterceptorObject
 }

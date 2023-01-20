@@ -13,5 +13,10 @@ export default defineBuildConfig({
     rollup: {
         emitCJS: true,
         inlineDependencies: true,
+        dts:{
+            compilerOptions:{
+                removeComments:false
+            }
+        }
     },
 })
